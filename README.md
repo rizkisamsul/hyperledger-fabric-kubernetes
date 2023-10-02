@@ -1,3 +1,7 @@
+CAUTION: THIS-IS-CLONE-REPO  AS DEVELOPMENT FROM
+
+https://github.com/TommyStarK/hyperledger-fabric-kubernetes.git 
+
 # hyperledger-fabric-kubernetes
 
 This repository aims to demonstrate how to deploy an Hyperledger Fabric [v2.4](https://hyperledger-fabric.readthedocs.io/en/release-2.4/) network on Kubernetes, and use chaincodes as external services.

@@ -1,0 +1,76 @@
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup
+  namespace: dummy-com
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          imagePullPolicy: IfNotPresent
+          args:
+            - clone
+            - --single-branch
+            - --
+            - https://github.com/TommyStarK/hyperledger-fabric-kubernetes.git
+            - /repo
+          securityContext:
+            runAsUser: 1
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: repo
+              mountPath: /repo
+      containers:
+      - name: fabric-tools
+        image: hyperledger/fabric-tools:2.4
+        imagePullPolicy: IfNotPresent
+        workingDir: /repo/hlf-config
+        command: ["/bin/sh",  "-c"]
+        args:
+        - mkdir artifacts;
+          cryptogen generate --config=./crypto-config.yaml;
+          configtxgen -profile OrdererGenesis -channelID orderer-system-channel -outputBlock ./artifacts/orderer.genesis.block;
+          configtxgen -profile ChannelAll -outputCreateChannelTx ./artifacts/channelall.tx -channelID channelall;
+          cd -;
+          mkdir -p /{buildpack/bin,chaincode-package,peer-core-config};
+          cp -R /repo/buildpack/bin/* /buildpack/bin;
+          cp -R /repo/chaincode-as-external-service /chaincode-package;
+          cp /repo/hlf-config/core.yaml /peer-core-config;
+        env:
+          - name: FABRIC_CFG_PATH
+            value: /repo/hlf-config
+        volumeMounts:
+        - name: repo
+          mountPath: /repo
+        - name: chaincode-buildpack
+          mountPath: /buildpack/bin
+          subPath: bin
+        - name: chaincode-buildpack
+          mountPath: /peer-core-config
+          subPath: config
+        - name: chaincode-package
+          mountPath: /chaincode-package
+        - name: hlf-artifacts
+          mountPath: /repo/hlf-config/artifacts
+        - name: hlf-crypto-config
+          mountPath: /repo/hlf-config/crypto-config
+      volumes:
+      - name: repo
+        emptyDir: {}
+      - name: chaincode-buildpack
+        persistentVolumeClaim:
+          claimName: chaincode-buildpack
+      - name: chaincode-package
+        persistentVolumeClaim:
+          claimName: chaincode-package
+      - name: hlf-artifacts
+        persistentVolumeClaim:
+          claimName: hlf-artifacts
+      - name: hlf-crypto-config
+        persistentVolumeClaim:
+          claimName: hlf-crypto-config

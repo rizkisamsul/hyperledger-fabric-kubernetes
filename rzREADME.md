@@ -1,16 +1,3 @@
-# hyperledger-fabric-kubernetes
-
-This repository aims to demonstrate how to deploy an Hyperledger Fabric [v2.4](https://hyperledger-fabric.readthedocs.io/en/release-2.4/) network on Kubernetes, and use chaincodes as external services.
-
-Legacy way of building and runing chaincodes required from the peer, a binding to the Docker socket for being able to
-talk with the Docker daemon.
-
-Using chaincode as an external service, the chaincode endpoint is deployed to the peer. The chaincode can be built and lauched separated from the peer. Therefore, there is no more dependency on the Kubernetes CRI implementation.
-
-⚠️ For demo purposes the chaincode package ID is hardcoded. This is mainly due to the fact that the chaincode package has already been generated and is present within the `chaincode-as-external-service` folder. For a given peer version, the chaincode package ID computed will always be the same. If you wish to dynamically generate the chaincode package then you must propagate accordingly the resulting package ID before starting the chaincode server.
-You can find one possible solution in the issue [#2](https://github.com/TommyStarK/hyperledger-fabric-kubernetes/issues/3#issuecomment-798954187).
-
-The source code herein is not production ready. It demonstrates what are the building blocks and how you can achieve having your Fabric network running on Kubernetes and use chaincode as an external service. If you want to move to a more production-grade deployment of Fabric you might want to take a look [here](https://github.com/hyperledger-labs/fabric-operator).
 
 ## Usage
 
@@ -54,9 +41,11 @@ We can now proceed to install the chaincode.
 
 - Terminal 1: CLI configured for the peer of Org1
 
+tar -cvzf backup.tgz /home/user/project
+
 ```bash
 # install the chaincode
-peer lifecycle chaincode install ./chaincodes/chaincode-as-external-service.tgz
+peer lifecycle chaincode install ./chaincodes/chaincode-as-external-service/chaincode-as-external-service.tgz
 peer lifecycle chaincode approveformyorg  -o orderer0-dummy-com:7050 --tls --cafile $ORDERER_CA --channelID $CHANNEL_NAME --name chaincode-as-external-service --version 1.0 --init-required --package-id chaincode-as-external-service:33b295bb4ac3f8dead7bddb9e86315aa7b3729b76d6d53f9379ddba6db900f7f --sequence 1
 ```
 
@@ -64,7 +53,7 @@ peer lifecycle chaincode approveformyorg  -o orderer0-dummy-com:7050 --tls --caf
 
 ```bash
 # install the chaincode
-peer lifecycle chaincode install ./chaincodes/chaincode-as-external-service.tgz
+peer lifecycle chaincode install ./chaincodes/chaincode-as-external-service/chaincode-as-external-service.tgz
 peer lifecycle chaincode approveformyorg  -o orderer0-dummy-com:7050 --tls --cafile $ORDERER_CA --channelID $CHANNEL_NAME --name chaincode-as-external-service --version 1.0 --init-required --package-id chaincode-as-external-service:33b295bb4ac3f8dead7bddb9e86315aa7b3729b76d6d53f9379ddba6db900f7f --sequence 1
 ```
 

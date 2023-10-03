@@ -17,7 +17,6 @@ func (sc *SmartContract) Init(ctx contractapi.TransactionContextInterface) error
 	var asset = &SimpleAsset{
 		Content: "default",
 		TxID:    ctx.GetStub().GetTxID(),
-		Provider:    "aplikasi",
 	}
 
 	assetAsBytes, err := json.Marshal(asset)
@@ -42,7 +41,7 @@ func (sc *SmartContract) Query(ctx contractapi.TransactionContextInterface, key 
 
 	// not found
 	if bytes == nil || len(bytes) == 0 {
-		return "state:not-found", nil
+		return "", nil
 	}
 
 	return string(bytes), nil
@@ -57,7 +56,7 @@ func (sc *SmartContract) QueryPrivateData(ctx contractapi.TransactionContextInte
 
 	// not found
 	if value == nil || len(value) == 0 {
-		return "state:not-found", nil
+		return "", nil
 	}
 
 	return string(value), nil

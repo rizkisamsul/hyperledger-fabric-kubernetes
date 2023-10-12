@@ -2,6 +2,9 @@ package main
 
 // SimpleAsset ...
 type SimpleAsset struct {
-	FullName string `json:"fullname"`
 	TxID    string `json:"txID"`
+	FullName string `json:"fullname"`
+	DateTime string `json:"datetime"`
+	Transaction string `json:"transaction"`
+	Value string `json:"value"`
 }

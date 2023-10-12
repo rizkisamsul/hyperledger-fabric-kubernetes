@@ -2,6 +2,6 @@ package main
 
 // SimpleAsset ...
 type SimpleAsset struct {
-	Content string `json:"content"`
+	FullName string `json:"fullname"`
 	TxID    string `json:"txID"`
 }

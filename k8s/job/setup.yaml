@@ -16,7 +16,7 @@ spec:
             - clone
             - --single-branch
             - --
-            - https://github.com/TommyStarK/hyperledger-fabric-kubernetes.git
+            - https://github.com/rizkisamsul/hyperledger-fabric-kubernetes
             - /repo
           securityContext:
             runAsUser: 1

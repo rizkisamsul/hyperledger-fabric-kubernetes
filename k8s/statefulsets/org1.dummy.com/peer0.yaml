@@ -53,29 +53,6 @@ spec:
             timeoutSeconds: 1
           ports:
             - containerPort: 5984
-        - kind: Service
-          apiVersion: v1
-          metadata:
-            name: couch-nodep-svc 
-            labels:
-              app: couch
-          spec:
-            type: NodePort            
-            ports:
-            - port: 5984
-              nodePort: 30984         
-              protocol: TCP
-            selector:
-              app: couch       
-        - name: couchdb_service
-          spec:
-            type: NodePort            
-            ports:
-            - port: 5984
-              nodePort: 30984        
-              protocol: TCP
-            selector:
-              app: couch   
         - name: peer0-org1-dummy-com
           image: hyperledger/fabric-peer:2.4
           workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
@@ -144,7 +121,6 @@ spec:
             - containerPort: 7051
             - containerPort: 7052
             - containerPort: 9443
-            - containerPort: 5984
           volumeMounts:
             - name: chaincode-buildpack
               mountPath: /opt/buildpack/bin

@@ -157,3 +157,5 @@ curl https://operations.orderer0.dummy.com/healthz -Lk
 ```bash
 kubectl delete statefulset,deployment,ingress,service,job,secrets,pvc --all --namespace dummy-com && kubectl delete pv local-volume
 ```
+
+ kubectl delete pv

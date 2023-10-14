@@ -16,7 +16,14 @@ type SmartContract struct {
 func (sc *SmartContract) Init(ctx contractapi.TransactionContextInterface) error {
 	var asset = &SimpleAsset{
 		Content: "default",
-		TxID:    ctx.GetStub().GetTxID(),
+		TxID: "default",
+		UID: "default",
+		UID_DESTINATION: "default",
+		TransactionID: "default",
+		TransactionType: "default",
+		TransactionAmount: "default",
+		TransactionDateTime: "default",
+		TxID: ctx.GetStub().GetTxID(),
 	}
 
 	assetAsBytes, err := json.Marshal(asset)

@@ -54,6 +54,53 @@ def TrxCBDC(uid, destination_uid, destination_type, transaction_type, transactio
     except Exception as e:
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
+    
+    query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
+    print("debug", query)
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    balance_init = False
+
+    if rows:
+        balance_user = rows[0][4]
+    else:
+        balance_user = 0
+        balance_init = True
+
+    if balance_init == False and (int(balance_user) < int(transaction_amount)):
+        actionIssue(uid, destination_uid, transaction_amount, "reject")
+
+def PaymentCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
+    print("PaymentCBDC")
+    try:
+        cursor.execute(
+            insert_query,
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
+        )
+        transaction_id = cursor.fetchone()[0]
+        conn.commit()
+        print("Data has been inserted successfully")
+    except Exception as e:
+        print(f"Error: Unable to insert data: {e}")
+        conn.rollback()
+    
+    query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc LIMIT 1"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    balance_init = False
+
+    if rows:
+        balance_user = rows[0][4]
+    else:
+        balance_user = 0
+        balance_init = True
+
+    print("balance_user", balance_user)
+    print("balance_user", transaction_amount)
+    if balance_init == False and (int(balance_user) < int(transaction_amount)):
+        actionIssue(uid, destination_uid, transaction_amount, "reject-payment")
+    else:
+        actionIssue(uid, destination_uid, transaction_amount, "approve-payment")
 
 def convertCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
     try:
@@ -150,7 +197,7 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         conn.rollback()
 
 
-def approveIssue(uid, destination_uid, transaction_amount):
+def actionIssue(uid, destination_uid, transaction_amount, state):
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{cbdcID}' order by id desc LIMIT 1"
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -158,6 +205,7 @@ def approveIssue(uid, destination_uid, transaction_amount):
         balance_cbdc = rows[0][4]
     else:
         balance_cbdc = 0
+    
     
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
     print("debug", query)
@@ -168,15 +216,17 @@ def approveIssue(uid, destination_uid, transaction_amount):
     else:
         balance_user = 0
 
-    balance_cbdc = int(balance_cbdc) - int(transaction_amount)
-    print("balance_cbdc", balance_cbdc)
-    balance_user = int(balance_user) + int(transaction_amount)
-    print("balance_user", balance_user)
+    if state == "approve":
+        balance_cbdc = int(balance_cbdc) - int(transaction_amount)
+        balance_user = int(balance_user) + int(transaction_amount)
+    elif state == "approve-payment":
+        balance_cbdc = int(balance_cbdc)
+        balance_user = int(balance_user) + int(transaction_amount)
 
     store_uid = uid
     store_destination_uid = destination_uid
     store_destination_type = "central"
-    store_transaction_type = "approve"
+    store_transaction_type = state
     store_transaction_amount = transaction_amount
     store_transaction_date_time = datetime.now()
 
@@ -191,6 +241,66 @@ def approveIssue(uid, destination_uid, transaction_amount):
     except Exception as e:
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
+
+    if state == "reject-payment":
+        query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc LIMIT 1"
+        print("debug", query)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        if rows:
+            balance_user_rejected = rows[0][4]
+        else:
+            balance_user_rejected = 0
+
+        store_uid = uid
+        store_destination_uid = uid
+        store_destination_type = "system"
+        store_transaction_type = "balance"
+        store_transaction_amount = balance_user_rejected
+        store_transaction_date_time = datetime.now()
+
+        try:
+            cursor.execute(
+                insert_query,
+                (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            )
+            transaction_id = cursor.fetchone()[0]
+            conn.commit()
+            print("Data has been inserted successfully")
+        except Exception as e:
+            print(f"Error: Unable to insert data: {e}")
+            conn.rollback()
+
+    if state == "approve-payment":
+        query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc LIMIT 1"
+        print("debug", query)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        if rows:
+            balance_user_payee = rows[0][4]
+        else:
+            balance_user_payee = 0
+
+        balance_payee = int(balance_user_payee) - int(transaction_amount)
+
+        store_uid = uid
+        store_destination_uid = uid
+        store_destination_type = "system"
+        store_transaction_type = "balanceasdasd"
+        store_transaction_amount = balance_payee
+        store_transaction_date_time = datetime.now()
+
+        try:
+            cursor.execute(
+                insert_query,
+                (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            )
+            transaction_id = cursor.fetchone()[0]
+            conn.commit()
+            print("Data has been inserted successfully")
+        except Exception as e:
+            print(f"Error: Unable to insert data: {e}")
+            conn.rollback()
 
     store_uid = destination_uid
     store_destination_uid = destination_uid
@@ -267,11 +377,13 @@ def insert():
     transaction_date_time = datetime.now()
 
     if transaction_type == "approve":
-        approveIssue(uid, destination_uid, transaction_amount)
+        actionIssue(uid, destination_uid, transaction_amount, 'approve')
     elif transaction_type == "approve-convert":
         convertCBDCApprove(uid, destination_uid, transaction_amount)
     elif transaction_type == "convert":
         convertCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
+    elif transaction_type == "payment":
+        PaymentCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
     else:
         TrxCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
 

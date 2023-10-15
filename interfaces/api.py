@@ -150,7 +150,6 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         conn.rollback()
 
 
-
 def approveIssue(uid, destination_uid, transaction_amount):
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{cbdcID}' order by id desc LIMIT 1"
     cursor.execute(query)
@@ -161,6 +160,7 @@ def approveIssue(uid, destination_uid, transaction_amount):
         balance_cbdc = 0
     
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
+    print("debug", query)
     cursor.execute(query)
     rows = cursor.fetchall()
     if rows:
@@ -169,7 +169,9 @@ def approveIssue(uid, destination_uid, transaction_amount):
         balance_user = 0
 
     balance_cbdc = int(balance_cbdc) - int(transaction_amount)
+    print("balance_cbdc", balance_cbdc)
     balance_user = int(balance_user) + int(transaction_amount)
+    print("balance_user", balance_user)
 
     store_uid = uid
     store_destination_uid = destination_uid

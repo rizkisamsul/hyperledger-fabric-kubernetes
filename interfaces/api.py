@@ -286,7 +286,7 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         store_uid = uid
         store_destination_uid = uid
         store_destination_type = "system"
-        store_transaction_type = "balanceasdasd"
+        store_transaction_type = "balance"
         store_transaction_amount = balance_payee
         store_transaction_date_time = datetime.now()
 

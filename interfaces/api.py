@@ -363,6 +363,10 @@ def blockchainStore(store_uid, store_destination_uid, store_destination_type, st
     
 @app.route('/transaction', methods = ['POST'])
 def transaction():
+    token = request.args.get('token')
+    if(token != token_security):
+        return jsonify(status=0, message="invalid token")
+        
     uid = request.args.get('uid')
     type = request.args.get('type')
 

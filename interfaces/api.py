@@ -196,7 +196,6 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
 
-
 def actionIssue(uid, destination_uid, transaction_amount, state):
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{cbdcID}' order by id desc LIMIT 1"
     cursor.execute(query)
@@ -362,6 +361,23 @@ def blockchainStore(store_uid, store_destination_uid, store_destination_type, st
     fout.close()
     subprocess.run ( [ "sh", filename] )
     
+@app.route('/transaction', methods = ['POST'])
+def transaction():
+    uid = request.args.get('uid')
+    type = request.args.get('type')
+
+    if type == "all":
+        query = f"SELECT destination_type, destination_uid, id, transaction_amount, transaction_date_time, transaction_type, uid FROM transaction.logs WHERE uid = '{uid}' order by id desc"
+    elif type == "issue":
+        query = f"SELECT destination_type, destination_uid, id, transaction_amount, transaction_date_time, transaction_type, uid FROM transaction.logs WHERE transaction_type = 'issue' AND uid = '{uid}' order by id desc"
+    else:
+        query = f"SELECT destination_type, destination_uid, id, transaction_amount, transaction_date_time, transaction_type, uid FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc"
+
+    cursor.execute(query)
+    columns = [desc[0] for desc in cursor.description]
+    real_dict = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return jsonify(status=1, data=real_dict)
+
 
 @app.route('/insert', methods = ['POST'])
 def insert():

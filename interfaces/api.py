@@ -281,12 +281,15 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         else:
             balance_user_payee = 0
 
+        print("balance_user_payee", balance_user_payee)
         balance_payee = int(balance_user_payee) - int(transaction_amount)
+        print("balance_payee", balance_payee)
+        print("transaction_amount", transaction_amount)
 
         store_uid = uid
         store_destination_uid = uid
         store_destination_type = "system"
-        store_transaction_type = "balance"
+        store_transaction_type = "balancexx"
         store_transaction_amount = balance_payee
         store_transaction_date_time = datetime.now()
 

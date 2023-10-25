@@ -5,11 +5,13 @@ import random
 import string
 import datetime
 import uuid
+import time
 
 from datetime import datetime
 from flask import request
 from flask import Flask, render_template
 from flask import jsonify, make_response
+from subprocess import check_output
 
 import psycopg2
 from datetime import datetime
@@ -22,6 +24,10 @@ insert_query = """
     INSERT INTO transaction.logs (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
     VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
 """
+
+update_query = """ UPDATE transaction.logs
+                SET txid = %s
+                WHERE id = %s"""
 
 try:
     conn = psycopg2.connect(
@@ -38,46 +44,55 @@ except Exception as e:
 cursor = conn.cursor()
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return 'block-chain apis'
+def blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time):
+    now = datetime.now()
+    transaction_date_time = now.strftime("%d/%m/%Y %H:%M:%S")
+    filename_insert = "logs/insert_"+str(uuid.uuid4())+".sh"
+    filename_verify = "logs/verify_"+str(uuid.uuid4())+".sh"
 
-def TrxCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
-    try:
-        cursor.execute(
-            insert_query,
-            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
-        )
-        transaction_id = cursor.fetchone()[0]
-        conn.commit()
-        print("Data has been inserted successfully")
-    except Exception as e:
-        print(f"Error: Unable to insert data: {e}")
-        conn.rollback()
+    fin = open("InsertQuery.sh", "rt")
+    fout = open(filename_insert, "w+")
+    for line in fin:
+        line = line.replace('VAR_TRANSACTION_ID', str(transaction_id))
+        line = line.replace('VAR_UID', uid)
+        line = line.replace('VAR_DestinationUID', destination_uid)
+        line = line.replace('VAR_DestinationType', destination_type)
+        line = line.replace('VAR_TransactionID', str(transaction_id))
+        line = line.replace('VAR_TransactionType', transaction_type)
+        line = line.replace('VAR_TransactionAmount', str(transaction_amount))
+        line = line.replace('VAR_TransactionDateTime', transaction_date_time)
+        fout.write(line)
+
+    fin.close()
+    fout.close()
+    subprocess.run ( [ "sh", filename_insert] )
+
+
+    fin = open("VerifyQuery.sh", "rt")
+    fout = open(filename_verify, "w+")
+    for line in fin:
+        line = line.replace('VAR_TRANSACTION_ID', str(transaction_id))
+        fout.write(line)
+
+    fin.close()
+    fout.close()
+    time.sleep(1)
+    out = check_output([ "sh", filename_verify])
+    out_str = str(out).split('txID')
+    out_txid = out_str[1].split('\\')[4].replace('"', '')
+    cursor.execute(update_query, (out_txid, transaction_id))
     
-    query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
-    print("debug", query)
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    balance_init = False
-
-    if rows:
-        balance_user = rows[0][4]
-    else:
-        balance_user = 0
-        balance_init = True
-
-    if balance_init == False and (int(balance_user) < int(transaction_amount)):
-        actionIssue(uid, destination_uid, transaction_amount, "reject")
-
 def PaymentCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
-    print("PaymentCBDC")
     try:
         cursor.execute(
             insert_query,
             (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: PaymentCBDC", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -100,7 +115,7 @@ def PaymentCBDC(uid, destination_uid, destination_type, transaction_type, transa
     if balance_init == False and (int(balance_user) < int(transaction_amount)):
         actionIssue(uid, destination_uid, transaction_amount, "reject-payment")
     else:
-        actionIssue(uid, destination_uid, transaction_amount, "approve-payment")
+        actionIssue(uid, destination_uid, transaction_amount, "approve-payment")        
 
 def convertCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
     try:
@@ -109,6 +124,10 @@ def convertCBDC(uid, destination_uid, destination_type, transaction_type, transa
             (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: convertCBDC", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -152,6 +171,10 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: convertCBDCApprove", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -171,6 +194,10 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+        
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: convertCBDCApprove", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -190,6 +217,10 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: convertCBDCApprove", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -235,6 +266,10 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -264,6 +299,10 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
                 (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
             )
             transaction_id = cursor.fetchone()[0]
+
+            blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+            print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
             conn.commit()
             print("Data has been inserted successfully")
         except Exception as e:
@@ -288,7 +327,7 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         store_uid = uid
         store_destination_uid = uid
         store_destination_type = "system"
-        store_transaction_type = "balancexx"
+        store_transaction_type = "balance"
         store_transaction_amount = balance_payee
         store_transaction_date_time = datetime.now()
 
@@ -298,6 +337,10 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
                 (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
             )
             transaction_id = cursor.fetchone()[0]
+
+            blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+            print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
             conn.commit()
             print("Data has been inserted successfully")
         except Exception as e:
@@ -317,6 +360,10 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
@@ -336,31 +383,53 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
             (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
+
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+
         conn.commit()
         print("Data has been inserted successfully")
     except Exception as e:
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
 
-def blockchainStore(store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time):
-    now = datetime.now()
-    transaction_date_time = now.strftime("%d/%m/%Y %H:%M:%S")
-    filename = "logs/"+str(uuid.uuid4())+".sh"
+def TrxCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time):
+    try:
+        cursor.execute(
+            insert_query,
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
+        )
+        transaction_id = cursor.fetchone()[0]
+        
+        blockchainStore(uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
+        print("DEBUG: actionIssue", uid, destination_uid, destination_type, transaction_id, transaction_type, transaction_amount, transaction_date_time)
 
-    fin = open("InsertQuery.sh", "rt")
-    fout = open(filename, "w+")
-    for line in fin:
-        line = line.replace('VAR_UID', uid)
-        line = line.replace('VAR_DESTINATION', destination_uid)
-        line = line.replace('VAR_TRANSACTION_ID', transaction_id)
-        line = line.replace('VAR_TRANSACTION_TYPE', transaction_type)
-        line = line.replace('VAR_TRANSACTION_AMOUNT', transaction_amount)
-        line = line.replace('VAR_TRANSACTION_DATETIME', transaction_date_time)
-        fout.write(line)
-    fin.close()
-    fout.close()
-    subprocess.run ( [ "sh", filename] )
+        conn.commit()
+        print("Data has been inserted successfully")
+    except Exception as e:
+        print(f"Error: Unable to insert data: {e}")
+        conn.rollback()
     
+    query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
+    print("debug", query)
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    balance_init = False
+
+    if rows:
+        balance_user = rows[0][4]
+    else:
+        balance_user = 0
+        balance_init = True
+
+    if balance_init == False and (int(balance_user) < int(transaction_amount)):
+        actionIssue(uid, destination_uid, transaction_amount, "reject")
+
+
+@app.route('/')
+def home():
+    return 'block-chain apis'
+
 @app.route('/transaction', methods = ['POST'])
 def transaction():
     token = request.args.get('token')
@@ -381,7 +450,6 @@ def transaction():
     columns = [desc[0] for desc in cursor.description]
     real_dict = [dict(zip(columns, row)) for row in cursor.fetchall()]
     return jsonify(status=1, data=real_dict)
-
 
 @app.route('/insert', methods = ['POST'])
 def insert():
@@ -409,10 +477,8 @@ def insert():
         PaymentCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
     else:
         TrxCBDC(uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
-
-    # blockchainStore(store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
     
-    return jsonify(status=1, message="successfully", transaction_id=transaction_id)
+    return jsonify(status=1, message="successfully")
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",  port=5000, debug=True)
+    app.run(host="0.0.0.0",  port=8000, debug=True)

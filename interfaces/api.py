@@ -158,17 +158,17 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         balance_bank = int(balance_convert) - int(transaction_amount)
         balance_cbdc = int(balance_cbdc) + int(balance_approve)
 
-    store_uid = uid
-    store_destination_uid = destination_uid
-    store_destination_type = "central"
-    store_transaction_type = "approve-convert"
-    store_transaction_amount = transaction_amount
-    store_transaction_date_time = datetime.now()
+    uid = uid
+    destination_uid = destination_uid
+    destination_type = "central"
+    transaction_type = "approve-convert"
+    transaction_amount = transaction_amount
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
 
@@ -181,17 +181,17 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
 
-    store_uid = bankBalance
-    store_destination_uid = bankBalance
-    store_destination_type = "system"
-    store_transaction_type = "balance"
-    store_transaction_amount = balance_bank
-    store_transaction_date_time = datetime.now()
+    uid = bankBalance
+    destination_uid = bankBalance
+    destination_type = "system"
+    transaction_type = "balance"
+    transaction_amount = balance_bank
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
         
@@ -204,17 +204,17 @@ def convertCBDCApprove(uid, destination_uid, transaction_amount):
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
 
-    store_uid = cbdcID
-    store_destination_uid = cbdcID
-    store_destination_type = "system"
-    store_transaction_type = "balance"
-    store_transaction_amount = balance_cbdc
-    store_transaction_date_time = datetime.now()
+    uid = cbdcID
+    destination_uid = cbdcID
+    destination_type = "system"
+    transaction_type = "balance"
+    transaction_amount = balance_cbdc
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
 
@@ -238,7 +238,7 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
     
     
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
-    print("debug", query)
+    # print("debug", query)
     cursor.execute(query)
     rows = cursor.fetchall()
     if rows:
@@ -253,17 +253,17 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         balance_cbdc = int(balance_cbdc)
         balance_user = int(balance_user) + int(transaction_amount)
 
-    store_uid = uid
-    store_destination_uid = destination_uid
-    store_destination_type = "central"
-    store_transaction_type = state
-    store_transaction_amount = transaction_amount
-    store_transaction_date_time = datetime.now()
+    uid = uid
+    destination_uid = destination_uid
+    destination_type = "central"
+    transaction_type = state
+    transaction_amount = transaction_amount
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
 
@@ -278,7 +278,7 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
 
     if state == "reject-payment":
         query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc LIMIT 1"
-        print("debug", query)
+        # print("debug", query)
         cursor.execute(query)
         rows = cursor.fetchall()
         if rows:
@@ -286,17 +286,17 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         else:
             balance_user_rejected = 0
 
-        store_uid = uid
-        store_destination_uid = uid
-        store_destination_type = "system"
-        store_transaction_type = "balance"
-        store_transaction_amount = balance_user_rejected
-        store_transaction_date_time = datetime.now()
+        uid = uid
+        destination_uid = uid
+        destination_type = "system"
+        transaction_type = "balance"
+        transaction_amount = balance_user_rejected
+        transaction_date_time = datetime.now()
 
         try:
             cursor.execute(
                 insert_query,
-                (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+                (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
             )
             transaction_id = cursor.fetchone()[0]
 
@@ -311,7 +311,7 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
 
     if state == "approve-payment":
         query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{uid}' order by id desc LIMIT 1"
-        print("debug", query)
+        # print("debug", query)
         cursor.execute(query)
         rows = cursor.fetchall()
         if rows:
@@ -324,17 +324,17 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         print("balance_payee", balance_payee)
         print("transaction_amount", transaction_amount)
 
-        store_uid = uid
-        store_destination_uid = uid
-        store_destination_type = "system"
-        store_transaction_type = "balance"
-        store_transaction_amount = balance_payee
-        store_transaction_date_time = datetime.now()
+        uid = uid
+        destination_uid = uid
+        destination_type = "system"
+        transaction_type = "balance"
+        transaction_amount = balance_payee
+        transaction_date_time = datetime.now()
 
         try:
             cursor.execute(
                 insert_query,
-                (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+                (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
             )
             transaction_id = cursor.fetchone()[0]
 
@@ -347,17 +347,17 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
             print(f"Error: Unable to insert data: {e}")
             conn.rollback()
 
-    store_uid = destination_uid
-    store_destination_uid = destination_uid
-    store_destination_type = "system"
-    store_transaction_type = "balance"
-    store_transaction_amount = balance_user
-    store_transaction_date_time = datetime.now()
+    uid = destination_uid
+    destination_uid = destination_uid
+    destination_type = "system"
+    transaction_type = "balance"
+    transaction_amount = balance_user
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
 
@@ -370,17 +370,17 @@ def actionIssue(uid, destination_uid, transaction_amount, state):
         print(f"Error: Unable to insert data: {e}")
         conn.rollback()
 
-    store_uid = cbdcID
-    store_destination_uid = cbdcID
-    store_destination_type = "system"
-    store_transaction_type = "balance"
-    store_transaction_amount = balance_cbdc
-    store_transaction_date_time = datetime.now()
+    uid = cbdcID
+    destination_uid = cbdcID
+    destination_type = "system"
+    transaction_type = "balance"
+    transaction_amount = balance_cbdc
+    transaction_date_time = datetime.now()
 
     try:
         cursor.execute(
             insert_query,
-            (store_uid, store_destination_uid, store_destination_type, store_transaction_type, store_transaction_amount, store_transaction_date_time)
+            (uid, destination_uid, destination_type, transaction_type, transaction_amount, transaction_date_time)
         )
         transaction_id = cursor.fetchone()[0]
 
@@ -411,7 +411,7 @@ def TrxCBDC(uid, destination_uid, destination_type, transaction_type, transactio
         conn.rollback()
     
     query = f"SELECT * FROM transaction.logs WHERE transaction_type = 'balance' AND uid = '{destination_uid}' order by id desc LIMIT 1"
-    print("debug", query)
+    # print("debug", query)
     cursor.execute(query)
     rows = cursor.fetchall()
     balance_init = False
